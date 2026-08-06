@@ -8,18 +8,34 @@ import { ConnectionQualityIndicator } from './ConnectionQualityIndicator'
 interface ParticipantTileProps {
   isDominant?: boolean
   raised?: boolean
+  /** When true, prefer screen-share track over camera (focus layout only). */
+  preferScreenShare?: boolean
 }
 
-export function ParticipantTile({ isDominant = false, raised = false }: ParticipantTileProps) {
+export function ParticipantTile({
+  isDominant = false,
+  raised = false,
+  preferScreenShare = false,
+}: ParticipantTileProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const participant = useParticipantContext()
 
   const videoPublication = participant.getTrackPublication(Track.Source.Camera)
   const screenPublication = participant.getTrackPublication(Track.Source.ScreenShare)
-  const publication = screenPublication ?? videoPublication
+
+  const activeScreen =
+    preferScreenShare &&
+    screenPublication &&
+    !screenPublication.isMuted &&
+    Boolean(screenPublication.track || screenPublication.isSubscribed)
+      ? screenPublication
+      : null
+
+  const publication = activeScreen ?? videoPublication
   const track = publication?.track
   const isSpeaking = participant.isSpeaking
   const name = participant.name || participant.identity
+  const showingScreen = publication?.source === Track.Source.ScreenShare
 
   useEffect(() => {
     const el = videoRef.current
@@ -31,7 +47,7 @@ export function ParticipantTile({ isDominant = false, raised = false }: Particip
     }
   }, [track])
 
-  const showVideo = publication?.source === Track.Source.ScreenShare || videoPublication?.track
+  const showVideo = Boolean(track)
 
   return (
     <div
@@ -60,7 +76,7 @@ export function ParticipantTile({ isDominant = false, raised = false }: Particip
         )}
         <ConnectionQualityIndicator participant={participant as LiveKitParticipant} />
       </div>
-      {publication?.source === Track.Source.ScreenShare && (
+      {showingScreen && (
         <span className="absolute right-2 top-2 flex items-center gap-1 rounded bg-black/60 px-2 py-0.5 text-xs">
           <Monitor className="h-3 w-3" />
           Screen

@@ -6,8 +6,9 @@ import {
   isTrackReference,
   useTracks,
 } from '@livekit/components-react'
+import type { TrackReferenceOrPlaceholder } from '@livekit/components-react'
 import type { ReactNode } from 'react'
-import { RoomEvent, Track } from 'livekit-client'
+import { Track } from 'livekit-client'
 import { useActiveSpeaker } from '../../hooks/useActiveSpeaker'
 import { DominantSpeakerContext } from './dominantSpeakerContext'
 import { MeetraGridTile } from './MeetraGridTile'
@@ -17,19 +18,26 @@ interface VideoGridProps {
   raisedHands?: Record<string, boolean>
 }
 
+function isActiveScreenShare(track: TrackReferenceOrPlaceholder) {
+  if (!isTrackReference(track)) return false
+  if (track.publication.source !== Track.Source.ScreenShare) return false
+  if (track.publication.isMuted) return false
+  return Boolean(track.publication.track) || track.publication.isSubscribed
+}
+
 export function VideoGrid({ raisedHands = {} }: VideoGridProps) {
   const { dominantSpeakerId } = useActiveSpeaker()
+  // Do not restrict updates to ActiveSpeakersChanged — screen share start/stop
+  // must refresh the layout or the UI stays blank after stopping share.
   const tracks = useTracks(
     [
       { source: Track.Source.Camera, withPlaceholder: true },
       { source: Track.Source.ScreenShare, withPlaceholder: false },
     ],
-    { updateOnlyOn: [RoomEvent.ActiveSpeakersChanged], onlySubscribed: false },
+    { onlySubscribed: false },
   )
 
-  const screenShareTrack = tracks.find(
-    (track) => isTrackReference(track) && track.publication.source === Track.Source.ScreenShare,
-  )
+  const screenShareTrack = tracks.find(isActiveScreenShare)
 
   const cameraTracks = tracks.filter(
     (track) => !isTrackReference(track) || track.publication.source === Track.Source.Camera,
@@ -40,7 +48,7 @@ export function VideoGrid({ raisedHands = {} }: VideoGridProps) {
 
   let content: ReactNode
 
-  if (screenShareTrack && isTrackReference(screenShareTrack)) {
+  if (screenShareTrack) {
     const shareParticipant = screenShareTrack.participant
     content = (
       <div className={shellClass} data-lk-theme="default">
@@ -56,6 +64,7 @@ export function VideoGrid({ raisedHands = {} }: VideoGridProps) {
             <ParticipantContext.Provider value={shareParticipant}>
               <ParticipantTile
                 isDominant
+                preferScreenShare
                 raised={raisedHands[shareParticipant.identity] ?? false}
               />
             </ParticipantContext.Provider>
