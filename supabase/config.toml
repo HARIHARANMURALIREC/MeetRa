@@ -1,0 +1,14 @@
+project_id = "nzrxeogmkxdhmyoxylnk"
+
+[api]
+enabled = true
+
+[db]
+major_version = 17
+
+[auth]
+site_url = "http://localhost:5173"
+additional_redirect_urls = ["http://localhost:5173/**"]
+
+[realtime]
+enabled = true
