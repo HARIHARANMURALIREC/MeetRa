@@ -4,9 +4,11 @@ import { useDominantSpeakerId } from './dominantSpeakerContext'
 
 interface MeetraGridTileProps {
   raisedHands?: Record<string, boolean>
+  /** Bottom filmstrip during screen share — fixed 16:9 tiles, less crop. */
+  filmstrip?: boolean
 }
 
-export function MeetraGridTile({ raisedHands = {} }: MeetraGridTileProps) {
+export function MeetraGridTile({ raisedHands = {}, filmstrip = false }: MeetraGridTileProps) {
   const trackRef = useTrackRefContext()
   const dominantSpeakerId = useDominantSpeakerId()
   const participant = trackRef.participant
@@ -18,6 +20,7 @@ export function MeetraGridTile({ raisedHands = {} }: MeetraGridTileProps) {
       <ParticipantTile
         isDominant={isDominant}
         raised={raisedHands[participant.identity] ?? false}
+        filmstrip={filmstrip}
       />
     </ParticipantContext.Provider>
   )

@@ -10,12 +10,18 @@ interface ParticipantTileProps {
   raised?: boolean
   /** When true, prefer screen-share track over camera (focus layout only). */
   preferScreenShare?: boolean
+  /** Filmstrip tile during screen share — enforce 16:9 framing. */
+  filmstrip?: boolean
+  /** How video fills the tile. Screen share defaults to contain. */
+  fit?: 'cover' | 'contain'
 }
 
 export function ParticipantTile({
   isDominant = false,
   raised = false,
   preferScreenShare = false,
+  filmstrip = false,
+  fit,
 }: ParticipantTileProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const participant = useParticipantContext()
@@ -36,6 +42,7 @@ export function ParticipantTile({
   const isSpeaking = participant.isSpeaking
   const name = participant.name || participant.identity
   const showingScreen = publication?.source === Track.Source.ScreenShare
+  const objectFit = fit ?? (showingScreen ? 'contain' : 'cover')
 
   useEffect(() => {
     const el = videoRef.current
@@ -51,28 +58,43 @@ export function ParticipantTile({
 
   return (
     <div
-      className={`relative flex h-full min-h-0 flex-col overflow-hidden rounded-xl bg-[var(--surface)] ${
+      className={`relative flex min-h-0 flex-col overflow-hidden rounded-xl bg-[var(--surface)] ${
+        filmstrip ? 'h-full w-full' : 'h-full'
+      } ${
         isDominant || isSpeaking
           ? 'ring-2 ring-[var(--accent)] ring-offset-2 ring-offset-[var(--bg)]'
           : 'ring-1 ring-[var(--border)]'
       }`}
     >
       {showVideo ? (
-        <video ref={videoRef} autoPlay playsInline className="h-full w-full flex-1 object-cover" />
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          className={`h-full w-full flex-1 bg-black ${
+            objectFit === 'contain' ? 'object-contain' : 'object-cover object-center'
+          }`}
+        />
       ) : (
         <div className="flex h-full min-h-[5rem] flex-1 items-center justify-center bg-[var(--surface)]">
-          <span className="text-4xl font-bold text-[var(--muted)]">
+          <span
+            className={`font-bold text-[var(--muted)] ${filmstrip ? 'text-2xl' : 'text-4xl'}`}
+          >
             {name[0]?.toUpperCase() ?? '?'}
           </span>
         </div>
       )}
-      <div className="absolute bottom-2 left-2 flex items-center gap-2 rounded-md bg-black/60 px-2 py-1 text-sm">
+      <div
+        className={`absolute bottom-1.5 left-1.5 flex max-w-[calc(100%-0.75rem)] items-center gap-1.5 rounded-md bg-black/60 px-1.5 py-0.5 ${
+          filmstrip ? 'text-[10px]' : 'text-sm'
+        }`}
+      >
         <span className="truncate">{name}</span>
         {raised && (
-          <Hand className="h-3.5 w-3.5 shrink-0 text-[var(--accent)]" aria-label="Raised hand" />
+          <Hand className="h-3 w-3 shrink-0 text-[var(--accent)]" aria-label="Raised hand" />
         )}
         {participant.isMicrophoneEnabled === false && (
-          <MicOff className="h-3.5 w-3.5 shrink-0 text-[var(--meetra-danger)]" aria-label="Muted" />
+          <MicOff className="h-3 w-3 shrink-0 text-[var(--meetra-danger)]" aria-label="Muted" />
         )}
         <ConnectionQualityIndicator participant={participant as LiveKitParticipant} />
       </div>

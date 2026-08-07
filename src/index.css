@@ -240,13 +240,44 @@ body {
   height: 100%;
 }
 
-.room-shell .video-grid-carousel {
-  max-height: 8rem;
+/* Google Meet–style screen share: cameras in a bottom horizontal strip */
+.room-shell .video-grid-filmstrip {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  height: 7.25rem;
+  padding: 0.25rem 0.5rem 0.5rem;
 }
 
 @media (min-width: 640px) {
-  .room-shell .video-grid-carousel {
-    max-height: none;
-    max-width: 11rem;
+  .room-shell .video-grid-filmstrip {
+    height: 9rem;
+    padding: 0.35rem 0.75rem 0.75rem;
   }
+}
+
+.room-shell .video-grid-filmstrip .video-grid-carousel,
+.room-shell .video-grid-filmstrip .lk-carousel {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  padding-bottom: 0;
+}
+
+.room-shell .video-grid-filmstrip .lk-carousel > * {
+  flex: 0 0 auto;
+  height: 100%;
+  width: auto;
+  aspect-ratio: 16 / 9;
+  max-width: min(240px, 42vw);
+  scroll-snap-align: center;
 }

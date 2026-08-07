@@ -1,6 +1,5 @@
 import {
   CarouselLayout,
-  FocusLayoutContainer,
   GridLayout,
   ParticipantContext,
   isTrackReference,
@@ -27,8 +26,6 @@ function isActiveScreenShare(track: TrackReferenceOrPlaceholder) {
 
 export function VideoGrid({ raisedHands = {} }: VideoGridProps) {
   const { dominantSpeakerId } = useActiveSpeaker()
-  // Do not restrict updates to ActiveSpeakersChanged — screen share start/stop
-  // must refresh the layout or the UI stays blank after stopping share.
   const tracks = useTracks(
     [
       { source: Track.Source.Camera, withPlaceholder: true },
@@ -43,7 +40,6 @@ export function VideoGrid({ raisedHands = {} }: VideoGridProps) {
     (track) => !isTrackReference(track) || track.publication.source === Track.Source.Camera,
   )
 
-  const tile = <MeetraGridTile raisedHands={raisedHands} />
   const shellClass = 'video-grid-shell h-full min-h-0 pb-28 sm:pb-24'
 
   let content: ReactNode
@@ -51,25 +47,27 @@ export function VideoGrid({ raisedHands = {} }: VideoGridProps) {
   if (screenShareTrack) {
     const shareParticipant = screenShareTrack.participant
     content = (
-      <div className={shellClass} data-lk-theme="default">
-        <FocusLayoutContainer className="video-grid-focus h-full !grid-cols-1 !grid-rows-[minmax(0,1fr)_auto] sm:!grid-cols-[minmax(0,1fr)_5fr] sm:!grid-rows-1">
+      <div className={`${shellClass} flex flex-col`} data-lk-theme="default">
+        {/* Google Meet–style: large share on top, cameras in a bottom strip */}
+        <div className="min-h-0 flex-1 p-2 pb-1">
+          <ParticipantContext.Provider value={shareParticipant}>
+            <ParticipantTile
+              isDominant
+              preferScreenShare
+              fit="contain"
+              raised={raisedHands[shareParticipant.identity] ?? false}
+            />
+          </ParticipantContext.Provider>
+        </div>
+        <div className="video-grid-filmstrip shrink-0">
           <CarouselLayout
             tracks={cameraTracks}
             orientation="horizontal"
-            className="video-grid-carousel order-2 min-h-0 sm:order-1"
+            className="video-grid-carousel h-full"
           >
-            {tile}
+            <MeetraGridTile raisedHands={raisedHands} filmstrip />
           </CarouselLayout>
-          <div className="min-h-0 order-1 sm:order-2">
-            <ParticipantContext.Provider value={shareParticipant}>
-              <ParticipantTile
-                isDominant
-                preferScreenShare
-                raised={raisedHands[shareParticipant.identity] ?? false}
-              />
-            </ParticipantContext.Provider>
-          </div>
-        </FocusLayoutContainer>
+        </div>
       </div>
     )
   } else {
@@ -77,7 +75,7 @@ export function VideoGrid({ raisedHands = {} }: VideoGridProps) {
       <div className={shellClass} data-lk-theme="default">
         <div className="lk-grid-layout-wrapper h-full w-full">
           <GridLayout tracks={cameraTracks} className="h-full w-full">
-            {tile}
+            <MeetraGridTile raisedHands={raisedHands} />
           </GridLayout>
         </div>
       </div>
