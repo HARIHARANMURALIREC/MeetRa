@@ -47,9 +47,9 @@ export function VideoGrid({ raisedHands = {} }: VideoGridProps) {
   if (screenShareTrack) {
     const shareParticipant = screenShareTrack.participant
     content = (
-      <div className={`${shellClass} flex flex-col`} data-lk-theme="default">
-        {/* Google Meet–style: large share on top, cameras in a bottom strip */}
-        <div className="min-h-0 flex-1 p-2 pb-1">
+      <div className={`${shellClass} video-grid-present`} data-lk-theme="default">
+        {/* Google Meet–style: large share left, vertical 16:9 tiles on the right */}
+        <div className="video-grid-present-stage">
           <ParticipantContext.Provider value={shareParticipant}>
             <ParticipantTile
               isDominant
@@ -59,15 +59,15 @@ export function VideoGrid({ raisedHands = {} }: VideoGridProps) {
             />
           </ParticipantContext.Provider>
         </div>
-        <div className="video-grid-filmstrip shrink-0">
+        <aside className="video-grid-present-rail">
           <CarouselLayout
             tracks={cameraTracks}
-            orientation="horizontal"
-            className="video-grid-carousel h-full"
+            orientation="vertical"
+            className="video-grid-carousel h-full w-full"
           >
             <MeetraGridTile raisedHands={raisedHands} filmstrip />
           </CarouselLayout>
-        </div>
+        </aside>
       </div>
     )
   } else {
