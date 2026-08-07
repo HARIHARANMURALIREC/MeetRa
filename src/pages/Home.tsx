@@ -5,13 +5,38 @@ import { useMeetingStore } from '../store/useMeetingStore'
 import { useAuthSession } from '../hooks/useAuthSession'
 import { Button } from '../components/ui/Button'
 import { ThemeToggle } from '../components/ui/ThemeToggle'
-import { HeroPresenceFrame } from '../components/home/HeroPresenceFrame'
+import { ConnectionStatus } from '../components/home/ConnectionStatus'
+import { ScrollProgress } from '../components/home/ScrollProgress'
+import { SplitHeadline } from '../components/home/SplitHeadline'
+import { PulsePill } from '../components/home/PulsePill'
 import { BeatsStrip } from '../components/home/BeatsStrip'
 import { CapabilitiesReel } from '../components/home/CapabilitiesReel'
 import { FeaturesIndex } from '../components/home/FeaturesIndex'
 import { RoomCodeRitual } from '../components/home/RoomCodeRitual'
 import { ClosingCue } from '../components/home/ClosingCue'
 import { readJoinParam } from '../lib/joinIntent'
+
+function NavTextLink({
+  children,
+  onClick,
+}: {
+  children: string
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group relative hidden px-1 py-1 text-sm text-[var(--muted)] transition hover:text-[var(--text)] sm:inline-flex"
+    >
+      {children}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 -bottom-0.5 h-px origin-center scale-x-0 bg-[var(--accent)] transition-transform duration-300 ease-out group-hover:scale-x-100"
+      />
+    </button>
+  )
+}
 
 export function Home() {
   const navigate = useNavigate()
@@ -22,23 +47,25 @@ export function Home() {
   const reduce = useReducedMotion()
 
   const { scrollY } = useScroll()
-  const navBg = useTransform(scrollY, [0, 40], ['rgba(0,0,0,0)', 'var(--surface)'])
-  const navBorder = useTransform(scrollY, [0, 40], ['rgba(0,0,0,0)', 'var(--border)'])
+  const navBg = useTransform(scrollY, [0, 80], ['rgba(0,0,0,0)', 'var(--surface)'])
+  const navBorder = useTransform(scrollY, [0, 80], ['rgba(0,0,0,0)', 'var(--border)'])
 
   const { scrollYProgress } = useScroll({
     target: heroRef,
     offset: ['start start', 'end start'],
   })
-  const vignetteY = useTransform(scrollYProgress, [0, 1], reduce ? [0, 0] : [0, 40])
+  const vignetteY = useTransform(scrollYProgress, [0, 1], reduce ? [0, 0] : [0, 36])
   const grainOpacity = useTransform(scrollYProgress, [0, 1], reduce ? [0.04, 0.04] : [0.05, 0.02])
+  const statusY = useTransform(scrollYProgress, [0, 1], reduce ? [0, 0] : [0, 48])
+  const textY = useTransform(scrollYProgress, [0, 1], reduce ? [0, 0] : [0, 18])
 
-  const stagger = (i: number) =>
+  const fadeUp = (delay: number) =>
     reduce
       ? { initial: false as const, animate: { opacity: 1 }, transition: { duration: 0 } }
       : {
-          initial: { opacity: 0, y: 12 },
+          initial: { opacity: 0, y: 8 },
           animate: { opacity: 1, y: 0 },
-          transition: { duration: 0.45, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] as const },
+          transition: { duration: 0.4, delay, ease: [0.22, 1, 0.36, 1] as const },
         }
 
   if (!sessionReady) {
@@ -61,6 +88,8 @@ export function Home() {
 
   return (
     <div className="relative min-h-full overflow-x-hidden bg-[var(--bg)] text-[var(--text)]">
+      <ScrollProgress />
+
       <motion.header
         style={{
           backgroundColor: navBg,
@@ -68,17 +97,22 @@ export function Home() {
           borderBottomWidth: 1,
           borderBottomStyle: 'solid',
         }}
-        className="fixed inset-x-0 top-0 z-40"
+        className="fixed inset-x-0 top-0 z-40 backdrop-blur-[6px]"
       >
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-          <Link to="/" className="font-display text-2xl tracking-tight text-[var(--text)]">
-            Meetra
+          <Link to="/" className="font-display text-2xl text-[var(--text)]">
+            <motion.span
+              className="inline-block"
+              initial={reduce ? false : { letterSpacing: '0.06em' }}
+              animate={{ letterSpacing: '0em' }}
+              transition={reduce ? { duration: 0 } : { duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            >
+              Meetra
+            </motion.span>
           </Link>
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-4">
+            <NavTextLink onClick={() => navigate('/login')}>Log in</NavTextLink>
             <ThemeToggle />
-            <Button variant="ghost" onClick={() => navigate('/login')} className="!px-3 !py-2">
-              Log in
-            </Button>
             <Button variant="primary" onClick={() => navigate('/login')} className="!px-3 !py-2">
               New meeting
             </Button>
@@ -91,11 +125,7 @@ export function Home() {
           ref={heroRef}
           className="relative flex min-h-[100svh] flex-col justify-center overflow-hidden px-4 pb-16 pt-24 sm:px-6 lg:pb-24"
         >
-          <motion.div
-            className="cine-vignette absolute inset-0"
-            style={{ y: vignetteY }}
-            aria-hidden
-          />
+          <motion.div className="cine-vignette absolute inset-0" style={{ y: vignetteY }} aria-hidden />
           <motion.div
             className="cine-grain absolute inset-0"
             style={{ opacity: grainOpacity }}
@@ -103,37 +133,34 @@ export function Home() {
           />
 
           <div className="relative z-10 mx-auto grid w-full max-w-6xl items-center gap-12 lg:grid-cols-[minmax(0,0.52fr)_minmax(0,0.48fr)]">
-            <div className="max-w-xl text-left">
-              <motion.p
-                {...stagger(0)}
-                className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-[var(--muted)]"
-              >
+            <motion.div className="max-w-xl text-left" style={{ y: textY }}>
+              <PulsePill className="text-[var(--muted)]">
                 Instant rooms · Live grid · Host control
-              </motion.p>
+              </PulsePill>
 
-              <motion.h1
-                initial={reduce ? false : { opacity: 0, y: 12, letterSpacing: '0.02em' }}
-                animate={{ opacity: 1, y: 0, letterSpacing: '0em' }}
-                transition={
-                  reduce
-                    ? { duration: 0 }
-                    : { duration: 0.6, delay: 0.08, ease: [0.22, 1, 0.36, 1] }
-                }
+              <SplitHeadline
+                text="You're on the air."
+                delay={0.1}
                 className="font-display mt-5 text-[clamp(2.75rem,9vw,5.5rem)] leading-[1.05] tracking-tight text-[var(--text)]"
-              >
-                You&apos;re on the air.
-              </motion.h1>
+              />
 
               <motion.p
-                {...stagger(2)}
+                {...fadeUp(0.32)}
                 className="mt-5 max-w-md text-base leading-relaxed text-[var(--muted)] sm:text-lg"
               >
                 Video meetings with waiting rooms, adaptive grids, chat, polls, and host tools —
                 start with a code and go live.
               </motion.p>
 
-              <motion.div {...stagger(3)} className="mt-9 flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
-                <Button onClick={() => navigate('/login')} className="w-full sm:w-auto">
+              <motion.div
+                {...fadeUp(0.4)}
+                className="mt-9 flex w-full flex-col gap-3 sm:w-auto sm:flex-row"
+              >
+                <Button
+                  breathe
+                  onClick={() => navigate('/login')}
+                  className="w-full sm:w-auto"
+                >
                   New meeting
                 </Button>
                 <Button
@@ -144,9 +171,11 @@ export function Home() {
                   Join with a code
                 </Button>
               </motion.div>
-            </div>
+            </motion.div>
 
-            <HeroPresenceFrame />
+            <motion.div style={{ y: statusY }} className="justify-self-end">
+              <ConnectionStatus />
+            </motion.div>
           </div>
         </section>
 
@@ -162,7 +191,13 @@ export function Home() {
         />
       </main>
 
-      <footer className="border-t border-[var(--border)] px-4 py-10 sm:px-6">
+      <motion.footer
+        className="border-t border-[var(--border)] px-4 py-10 sm:px-6"
+        initial={reduce ? false : { opacity: 0, y: 12 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.35 }}
+        transition={reduce ? { duration: 0 } : { duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+      >
         <div className="mx-auto flex max-w-6xl flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="font-display text-lg text-[var(--text)]">Meetra</p>
@@ -183,7 +218,7 @@ export function Home() {
             <span className="text-[var(--text)]">TEAM OG</span>
           </p>
         </div>
-      </footer>
+      </motion.footer>
     </div>
   )
 }
