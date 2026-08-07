@@ -1,11 +1,12 @@
 import {
-  CarouselLayout,
   GridLayout,
   ParticipantContext,
+  TrackRefContext,
   isTrackReference,
   useTracks,
 } from '@livekit/components-react'
 import type { TrackReferenceOrPlaceholder } from '@livekit/components-react'
+import { getTrackReferenceId } from '@livekit/components-core'
 import type { ReactNode } from 'react'
 import { Track } from 'livekit-client'
 import { useActiveSpeaker } from '../../hooks/useActiveSpeaker'
@@ -48,7 +49,6 @@ export function VideoGrid({ raisedHands = {} }: VideoGridProps) {
     const shareParticipant = screenShareTrack.participant
     content = (
       <div className={`${shellClass} video-grid-present`} data-lk-theme="default">
-        {/* Google Meet–style: large share left, vertical 16:9 tiles on the right */}
         <div className="video-grid-present-stage">
           <ParticipantContext.Provider value={shareParticipant}>
             <ParticipantTile
@@ -59,14 +59,18 @@ export function VideoGrid({ raisedHands = {} }: VideoGridProps) {
             />
           </ParticipantContext.Provider>
         </div>
+
+        {/* Custom rail — avoid LiveKit CarouselLayout height-splitting (causes portrait crop) */}
         <aside className="video-grid-present-rail">
-          <CarouselLayout
-            tracks={cameraTracks}
-            orientation="vertical"
-            className="video-grid-carousel h-full w-full"
-          >
-            <MeetraGridTile raisedHands={raisedHands} filmstrip />
-          </CarouselLayout>
+          <div className="video-grid-present-rail-scroll">
+            {cameraTracks.map((trackRef) => (
+              <div key={getTrackReferenceId(trackRef)} className="video-grid-present-tile">
+                <TrackRefContext.Provider value={trackRef}>
+                  <MeetraGridTile raisedHands={raisedHands} filmstrip />
+                </TrackRefContext.Provider>
+              </div>
+            ))}
+          </div>
         </aside>
       </div>
     )

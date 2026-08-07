@@ -58,8 +58,10 @@ export function ParticipantTile({
 
   return (
     <div
-      className={`relative flex min-h-0 flex-col overflow-hidden rounded-xl bg-[var(--surface)] ${
-        filmstrip ? 'h-full w-full' : 'h-full'
+      className={`relative overflow-hidden rounded-xl bg-[var(--surface)] ${
+        filmstrip
+          ? 'h-full w-full'
+          : 'flex h-full min-h-0 flex-col'
       } ${
         isDominant || isSpeaking
           ? 'ring-2 ring-[var(--accent)] ring-offset-2 ring-offset-[var(--bg)]'
@@ -71,12 +73,18 @@ export function ParticipantTile({
           ref={videoRef}
           autoPlay
           playsInline
-          className={`h-full w-full flex-1 bg-black ${
-            objectFit === 'contain' ? 'object-contain' : 'object-cover object-center'
+          className={`bg-black ${
+            filmstrip
+              ? 'absolute inset-0 h-full w-full object-cover object-center'
+              : `h-full w-full flex-1 ${objectFit === 'contain' ? 'object-contain' : 'object-cover object-center'}`
           }`}
         />
       ) : (
-        <div className="flex h-full min-h-[5rem] flex-1 items-center justify-center bg-[var(--surface)]">
+        <div
+          className={`flex items-center justify-center bg-[var(--surface)] ${
+            filmstrip ? 'absolute inset-0' : 'h-full min-h-[5rem] flex-1'
+          }`}
+        >
           <span
             className={`font-bold text-[var(--muted)] ${filmstrip ? 'text-2xl' : 'text-4xl'}`}
           >
@@ -85,7 +93,7 @@ export function ParticipantTile({
         </div>
       )}
       <div
-        className={`absolute bottom-1.5 left-1.5 flex max-w-[calc(100%-0.75rem)] items-center gap-1.5 rounded-md bg-black/60 px-1.5 py-0.5 ${
+        className={`absolute bottom-1.5 left-1.5 z-[1] flex max-w-[calc(100%-0.75rem)] items-center gap-1.5 rounded-md bg-black/60 px-1.5 py-0.5 ${
           filmstrip ? 'text-[10px]' : 'text-sm'
         }`}
       >

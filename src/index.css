@@ -242,7 +242,7 @@ body {
 
 /*
  * Google Meet–style presentation layout:
- * large screen share on the left, stacked 16:9 camera tiles on the right.
+ * large screen share on the left, stacked landscape 16:9 camera tiles on the right.
  * On small screens: share on top, horizontal camera strip below.
  */
 .room-shell .video-grid-present {
@@ -264,35 +264,29 @@ body {
 .room-shell .video-grid-present-rail {
   flex: 0 0 auto;
   width: 100%;
-  max-height: 7.5rem;
   min-height: 0;
   overflow: hidden;
 }
 
-.room-shell .video-grid-present-rail .video-grid-carousel,
-.room-shell .video-grid-present-rail .lk-carousel {
+.room-shell .video-grid-present-rail-scroll {
   display: flex;
   flex-direction: row;
   align-items: stretch;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 0.5rem;
   width: 100%;
-  height: 100%;
-  max-width: none;
-  max-height: none;
   overflow-x: auto;
   overflow-y: hidden;
+  padding-bottom: 0.15rem;
   scroll-snap-type: x mandatory;
-  padding: 0;
 }
 
-.room-shell .video-grid-present-rail .lk-carousel > * {
+.room-shell .video-grid-present-tile {
   flex: 0 0 auto;
-  height: 100%;
-  width: auto;
+  width: min(11.5rem, 42vw);
   aspect-ratio: 16 / 9;
-  max-width: min(220px, 55vw);
-  scroll-snap-align: center;
+  height: auto;
+  scroll-snap-align: start;
 }
 
 @media (min-width: 768px) {
@@ -308,32 +302,29 @@ body {
   }
 
   .room-shell .video-grid-present-rail {
-    flex: 0 0 17.5rem;
-    width: 17.5rem;
-    max-width: 17.5rem;
-    max-height: none;
+    flex: 0 0 18rem;
+    width: 18rem;
+    max-width: 18rem;
     height: 100%;
     align-self: stretch;
   }
 
-  .room-shell .video-grid-present-rail .video-grid-carousel,
-  .room-shell .video-grid-present-rail .lk-carousel {
+  .room-shell .video-grid-present-rail-scroll {
     flex-direction: column;
-    justify-content: flex-start;
     align-items: stretch;
+    justify-content: flex-start;
+    height: 100%;
     overflow-x: hidden;
     overflow-y: auto;
     scroll-snap-type: y mandatory;
     gap: 0.625rem;
-    height: 100%;
+    padding-bottom: 0;
   }
 
-  .room-shell .video-grid-present-rail .lk-carousel > * {
-    flex: 0 0 auto;
+  .room-shell .video-grid-present-tile {
     width: 100%;
-    height: auto;
     aspect-ratio: 16 / 9;
-    max-width: none;
-    scroll-snap-align: start;
+    height: auto;
+    flex: 0 0 auto;
   }
 }
