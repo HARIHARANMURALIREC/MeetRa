@@ -1,6 +1,5 @@
-import { facingModeFromLocalTrack } from 'livekit-client'
-import type { LocalTrack, Room } from 'livekit-client'
-import { Track } from 'livekit-client'
+import { facingModeFromLocalTrack, Room, Track } from 'livekit-client'
+import type { LocalTrack } from 'livekit-client'
 
 export type CameraFacing = 'user' | 'environment'
 
