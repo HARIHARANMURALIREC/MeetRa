@@ -12,12 +12,14 @@ import {
   MicOff,
   MonitorUp,
   Smile,
+  SwitchCamera,
   Users,
   Video,
   VideoOff,
   Volume2,
 } from 'lucide-react'
 import { useMeetingStore } from '../../store/useMeetingStore'
+import { flipLiveKitCamera } from '../../lib/cameraFlip'
 import { ControlButtonWrap, ReactionsMenu } from './ReactionsMenu'
 
 interface ControlsProps {
@@ -28,6 +30,9 @@ interface ControlsProps {
   onReact: (emoji: string) => void
   onToggleRaiseHand: (raised: boolean) => void
   handRaised?: boolean
+  /** Phone auto-hide chrome; desktop always true. */
+  visible?: boolean
+  onUserActivity?: () => void
 }
 
 export function Controls({
@@ -38,6 +43,8 @@ export function Controls({
   onReact,
   onToggleRaiseHand,
   handRaised = false,
+  visible = true,
+  onUserActivity,
 }: ControlsProps) {
   const room = useRoomContext()
   const localParticipant = useLocalParticipant()
@@ -49,13 +56,21 @@ export function Controls({
   const setParticipantsOpen = useMeetingStore((s) => s.setParticipantsOpen)
   const setPollsOpen = useMeetingStore((s) => s.setPollsOpen)
   const setNoiseSuppressionEnabled = useMeetingStore((s) => s.setNoiseSuppressionEnabled)
+  const setVideoDeviceId = useMeetingStore((s) => s.setVideoDeviceId)
+  const setCameraFacing = useMeetingStore((s) => s.setCameraFacing)
 
   const [reactionsOpen, setReactionsOpen] = useState(false)
+  const [flipping, setFlipping] = useState(false)
   const reactionsRef = useRef<HTMLButtonElement>(null)
 
   const micEnabled = localParticipant.isMicrophoneEnabled
   const cameraEnabled = localParticipant.isCameraEnabled
   const screenShareEnabled = localParticipant.isScreenShareEnabled
+  const showFlipCamera =
+    cameraEnabled &&
+    (typeof window === 'undefined' ||
+      /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ||
+      window.matchMedia('(pointer: coarse)').matches)
 
   async function toggleMic() {
     await room.localParticipant.setMicrophoneEnabled(!micEnabled)
@@ -67,6 +82,20 @@ export function Controls({
 
   async function toggleScreenShare() {
     await room.localParticipant.setScreenShareEnabled(!screenShareEnabled)
+  }
+
+  async function flipCamera() {
+    if (flipping || !cameraEnabled) return
+    setFlipping(true)
+    try {
+      const result = await flipLiveKitCamera(room)
+      if (result.deviceId) setVideoDeviceId(result.deviceId)
+      setCameraFacing(result.facing)
+    } catch {
+      /* device may not support flip */
+    } finally {
+      setFlipping(false)
+    }
   }
 
   async function copyInvite() {
@@ -82,7 +111,13 @@ export function Controls({
         onReact={onReact}
         anchorRef={reactionsRef}
       />
-      <div className="room-shell fixed bottom-0 left-0 right-0 z-40 border-t border-[var(--border)] bg-[var(--surface)] px-2 pb-3 pt-7 sm:px-4">
+      <div
+        className={`room-shell fixed bottom-0 left-0 right-0 z-40 border-t border-[var(--border)] bg-[var(--surface)] px-2 pb-3 pt-7 transition-transform duration-300 ease-out sm:px-4 ${
+          visible ? 'translate-y-0' : 'pointer-events-none translate-y-full'
+        }`}
+        onPointerDown={() => onUserActivity?.()}
+        aria-hidden={!visible}
+      >
         <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-end gap-x-2 gap-y-2">
           <div aria-hidden className="hidden min-w-0 sm:block" />
           <div className="col-span-3 flex min-w-0 flex-wrap items-center justify-center gap-x-1.5 gap-y-2 pb-1 sm:col-span-1 sm:gap-x-2">
@@ -98,6 +133,15 @@ export function Controls({
               label={cameraEnabled ? 'Stop video' : 'Start video'}
               icon={cameraEnabled ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
             />
+            {showFlipCamera && (
+              <ControlButtonWrap
+                active={false}
+                onClick={() => void flipCamera()}
+                label={flipping ? 'Switching…' : 'Flip camera'}
+                icon={<SwitchCamera className={`h-5 w-5 ${flipping ? 'animate-spin' : ''}`} />}
+                highlightWhenInactive
+              />
+            )}
             <ControlButtonWrap
               active={screenShareEnabled}
               onClick={toggleScreenShare}

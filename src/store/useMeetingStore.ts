@@ -13,6 +13,7 @@ interface MeetingState {
   noiseSuppressionEnabled: boolean
   audioDeviceId: string
   videoDeviceId: string
+  cameraFacing: 'user' | 'environment'
   chatOpen: boolean
   participantsOpen: boolean
   pollsOpen: boolean
@@ -30,6 +31,7 @@ interface MeetingState {
   setNoiseSuppressionEnabled: (enabled: boolean) => void
   setAudioDeviceId: (id: string) => void
   setVideoDeviceId: (id: string) => void
+  setCameraFacing: (facing: 'user' | 'environment') => void
   setChatOpen: (open: boolean) => void
   setParticipantsOpen: (open: boolean) => void
   setPollsOpen: (open: boolean) => void
@@ -51,6 +53,7 @@ const initialState = {
   noiseSuppressionEnabled: false,
   audioDeviceId: '',
   videoDeviceId: '',
+  cameraFacing: 'user' as const,
   chatOpen: false,
   participantsOpen: false,
   pollsOpen: false,
@@ -83,6 +86,7 @@ export const useMeetingStore = create<MeetingState>((set) => ({
   setNoiseSuppressionEnabled: (noiseSuppressionEnabled) => set({ noiseSuppressionEnabled }),
   setAudioDeviceId: (audioDeviceId) => set({ audioDeviceId }),
   setVideoDeviceId: (videoDeviceId) => set({ videoDeviceId }),
+  setCameraFacing: (cameraFacing) => set({ cameraFacing }),
   setChatOpen: (chatOpen) => set({ chatOpen }),
   setParticipantsOpen: (participantsOpen) => set({ participantsOpen }),
   setPollsOpen: (pollsOpen) => set({ pollsOpen }),

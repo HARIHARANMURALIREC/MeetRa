@@ -16,6 +16,8 @@ import { ParticipantTile } from './ParticipantTile'
 
 interface VideoGridProps {
   raisedHands?: Record<string, boolean>
+  /** When true, drop bottom padding reserved for the control bar (phone chrome hidden). */
+  compactBottom?: boolean
 }
 
 function isActiveScreenShare(track: TrackReferenceOrPlaceholder) {
@@ -25,7 +27,7 @@ function isActiveScreenShare(track: TrackReferenceOrPlaceholder) {
   return Boolean(track.publication.track) || track.publication.isSubscribed
 }
 
-export function VideoGrid({ raisedHands = {} }: VideoGridProps) {
+export function VideoGrid({ raisedHands = {}, compactBottom = false }: VideoGridProps) {
   const { dominantSpeakerId } = useActiveSpeaker()
   const tracks = useTracks(
     [
@@ -41,7 +43,9 @@ export function VideoGrid({ raisedHands = {} }: VideoGridProps) {
     (track) => !isTrackReference(track) || track.publication.source === Track.Source.Camera,
   )
 
-  const shellClass = 'video-grid-shell h-full min-h-0 pb-28 sm:pb-24'
+  const shellClass = compactBottom
+    ? 'video-grid-shell h-full min-h-0 pb-0 sm:pb-24'
+    : 'video-grid-shell h-full min-h-0 pb-28 sm:pb-24'
 
   let content: ReactNode
 

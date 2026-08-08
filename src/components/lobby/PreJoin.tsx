@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { Mic, MicOff, Video, VideoOff } from 'lucide-react'
+import { Mic, MicOff, SwitchCamera, Video, VideoOff } from 'lucide-react'
 import { useMeetingStore } from '../../store/useMeetingStore'
 import { buildMediaConstraints, useMediaDevices } from '../../hooks/useMediaDevices'
+import { flipPreviewCamera } from '../../lib/cameraFlip'
 
 interface PreJoinProps {
   onJoin: () => void
@@ -17,14 +18,20 @@ export function PreJoin({ onJoin, joinLabel }: PreJoinProps) {
   const cameraEnabled = useMeetingStore((s) => s.cameraEnabled)
   const audioDeviceId = useMeetingStore((s) => s.audioDeviceId)
   const videoDeviceId = useMeetingStore((s) => s.videoDeviceId)
+  const cameraFacing = useMeetingStore((s) => s.cameraFacing)
   const setDisplayName = useMeetingStore((s) => s.setDisplayName)
   const setMicEnabled = useMeetingStore((s) => s.setMicEnabled)
   const setCameraEnabled = useMeetingStore((s) => s.setCameraEnabled)
   const setAudioDeviceId = useMeetingStore((s) => s.setAudioDeviceId)
   const setVideoDeviceId = useMeetingStore((s) => s.setVideoDeviceId)
-  const { audioInputs, videoInputs } = useMediaDevices()
+  const setCameraFacing = useMeetingStore((s) => s.setCameraFacing)
+  const { audioInputs, videoInputs, refresh } = useMediaDevices()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [flipping, setFlipping] = useState(false)
+
+  const canFlipCamera =
+    videoInputs.length > 1 || /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)
 
   useEffect(() => {
     let mounted = true
@@ -33,14 +40,26 @@ export function PreJoin({ onJoin, joinLabel }: PreJoinProps) {
       streamRef.current?.getTracks().forEach((t) => t.stop())
       try {
         const stream = await navigator.mediaDevices.getUserMedia(
-          buildMediaConstraints(audioDeviceId || undefined, videoDeviceId || undefined),
+          buildMediaConstraints(
+            audioDeviceId || undefined,
+            videoDeviceId || undefined,
+            videoDeviceId ? undefined : cameraFacing,
+          ),
         )
         if (!mounted) {
           stream.getTracks().forEach((t) => t.stop())
           return
         }
         streamRef.current = stream
-        if (videoRef.current) videoRef.current.srcObject = stream
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream
+          videoRef.current.style.transform = cameraFacing === 'user' ? 'scaleX(-1)' : 'none'
+        }
+        const activeId = stream.getVideoTracks()[0]?.getSettings().deviceId
+        if (activeId && !videoDeviceId) {
+          setVideoDeviceId(activeId)
+        }
+        await refresh()
         setLoading(false)
       } catch {
         setError('Camera/mic access denied. You can still join with toggles off.')
@@ -53,7 +72,9 @@ export function PreJoin({ onJoin, joinLabel }: PreJoinProps) {
       mounted = false
       streamRef.current?.getTracks().forEach((t) => t.stop())
     }
-  }, [audioDeviceId, videoDeviceId])
+    // refresh intentionally omitted — stable enough; avoid restart loops
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [audioDeviceId, videoDeviceId, cameraFacing, setVideoDeviceId])
 
   useEffect(() => {
     streamRef.current?.getAudioTracks().forEach((t) => {
@@ -67,6 +88,19 @@ export function PreJoin({ onJoin, joinLabel }: PreJoinProps) {
     })
     if (videoRef.current) videoRef.current.style.display = cameraEnabled ? 'block' : 'none'
   }, [cameraEnabled])
+
+  async function handleFlipCamera() {
+    if (flipping || !cameraEnabled) return
+    setFlipping(true)
+    try {
+      const next = await flipPreviewCamera(videoInputs, videoDeviceId, cameraFacing)
+      if (!next) return
+      setCameraFacing(next.facing)
+      setVideoDeviceId(next.deviceId)
+    } finally {
+      setFlipping(false)
+    }
+  }
 
   return (
     <div className="room-shell flex min-h-dvh flex-col items-center justify-center bg-[var(--bg)] px-4 text-[var(--text)]">
@@ -91,6 +125,18 @@ export function PreJoin({ onJoin, joinLabel }: PreJoinProps) {
             </div>
           )}
           <video ref={videoRef} autoPlay muted playsInline className="h-full w-full object-cover" />
+          {canFlipCamera && cameraEnabled && !loading && (
+            <button
+              type="button"
+              onClick={() => void handleFlipCamera()}
+              disabled={flipping}
+              className="absolute right-3 top-3 z-10 inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--border)] bg-black/55 text-white backdrop-blur-sm transition hover:bg-black/70 disabled:opacity-50"
+              aria-label={cameraFacing === 'user' ? 'Switch to back camera' : 'Switch to front camera'}
+              title={cameraFacing === 'user' ? 'Back camera' : 'Front camera'}
+            >
+              <SwitchCamera className={`h-5 w-5 ${flipping ? 'animate-spin' : ''}`} />
+            </button>
+          )}
         </div>
 
         {error && <p className="mt-3 text-center text-sm text-[var(--meetra-danger)]">{error}</p>}
@@ -115,7 +161,12 @@ export function PreJoin({ onJoin, joinLabel }: PreJoinProps) {
             Camera
             <select
               value={videoDeviceId}
-              onChange={(e) => setVideoDeviceId(e.target.value)}
+              onChange={(e) => {
+                setVideoDeviceId(e.target.value)
+                const label = videoInputs.find((d) => d.deviceId === e.target.value)?.label ?? ''
+                if (/back|rear|environment/i.test(label)) setCameraFacing('environment')
+                else setCameraFacing('user')
+              }}
               className="mt-1 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 py-2 text-sm text-[var(--text)]"
             >
               <option value="">Default</option>
@@ -128,7 +179,7 @@ export function PreJoin({ onJoin, joinLabel }: PreJoinProps) {
           </label>
         </div>
 
-        <div className="mt-4 flex justify-center gap-3">
+        <div className="mt-4 flex flex-wrap justify-center gap-3">
           <button
             type="button"
             onClick={() => setMicEnabled(!micEnabled)}
@@ -153,6 +204,17 @@ export function PreJoin({ onJoin, joinLabel }: PreJoinProps) {
             {cameraEnabled ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
             {cameraEnabled ? 'Camera on' : 'Camera off'}
           </button>
+          {canFlipCamera && (
+            <button
+              type="button"
+              onClick={() => void handleFlipCamera()}
+              disabled={!cameraEnabled || flipping}
+              className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--text)] transition hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:opacity-50"
+            >
+              <SwitchCamera className="h-4 w-4" />
+              {cameraFacing === 'user' ? 'Back cam' : 'Front cam'}
+            </button>
+          )}
         </div>
 
         <label className="mt-6 block text-sm font-medium text-[var(--muted)]">

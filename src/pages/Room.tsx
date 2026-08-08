@@ -27,6 +27,9 @@ export function Room() {
   const meetingEnded = useMeetingStore((s) => s.meetingEnded)
   const micEnabled = useMeetingStore((s) => s.micEnabled)
   const cameraEnabled = useMeetingStore((s) => s.cameraEnabled)
+  const audioDeviceId = useMeetingStore((s) => s.audioDeviceId)
+  const videoDeviceId = useMeetingStore((s) => s.videoDeviceId)
+  const cameraFacing = useMeetingStore((s) => s.cameraFacing)
   const setRoom = useMeetingStore((s) => s.setRoom)
   const setParticipant = useMeetingStore((s) => s.setParticipant)
   const setIsHost = useMeetingStore((s) => s.setIsHost)
@@ -335,8 +338,20 @@ export function Room() {
           token={token}
           serverUrl={wsUrl}
           connect
-          video={cameraEnabled}
-          audio={micEnabled}
+          video={
+            cameraEnabled
+              ? videoDeviceId
+                ? { deviceId: videoDeviceId }
+                : { facingMode: cameraFacing }
+              : false
+          }
+          audio={
+            micEnabled
+              ? audioDeviceId
+                ? { deviceId: audioDeviceId }
+                : true
+              : false
+          }
           onDisconnected={handleDisconnected}
           className="h-full min-h-dvh"
         >
