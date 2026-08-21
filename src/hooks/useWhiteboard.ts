@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useDataChannel, useRoomContext } from '@livekit/components-react'
+import { useMeetingStore } from '../store/useMeetingStore'
 
 export type WbTool = 'pen' | 'highlighter' | 'eraser'
 
@@ -15,6 +16,7 @@ export type WbStroke = {
 }
 
 export type WbMsg =
+  | { type: 'open'; from: string }
   | { type: 'stroke'; stroke: WbStroke }
   | { type: 'undo'; id: string; from: string }
   | { type: 'clear'; from: string }
@@ -42,6 +44,10 @@ function mergeStrokes(existing: WbStroke[], incoming: WbStroke[]): WbStroke[] {
   return Array.from(byId.values())
 }
 
+function openWhiteboardForEveryone() {
+  useMeetingStore.getState().setWhiteboardOpen(true)
+}
+
 export function useWhiteboard(enabled: boolean) {
   const room = useRoomContext()
   const [strokes, setStrokes] = useState<WbStroke[]>([])
@@ -49,7 +55,14 @@ export function useWhiteboard(enabled: boolean) {
   strokesRef.current = strokes
 
   const sendRef = useRef<(payload: WbMsg) => Promise<void>>(async () => {})
-  const snapshotRequestedRef = useRef(false)
+  const announcedOpenRef = useRef(false)
+
+  const requestSnapshot = useCallback(() => {
+    void sendRef.current({
+      type: 'snapshot_request',
+      from: room.localParticipant.identity,
+    })
+  }, [room])
 
   const handleMsg = useCallback(
     (msg: { payload: Uint8Array; from?: { identity?: string } }) => {
@@ -60,7 +73,16 @@ export function useWhiteboard(enabled: boolean) {
         ('from' in parsed ? String((parsed as { from?: string }).from ?? '') : '')
       const localId = room.localParticipant.identity
 
+      if (parsed.type === 'open') {
+        if (from === localId) return
+        openWhiteboardForEveryone()
+        if (strokesRef.current.length === 0) requestSnapshot()
+        return
+      }
+
       if (parsed.type === 'stroke') {
+        // Anyone drawing pulls the board open for the whole room
+        openWhiteboardForEveryone()
         setStrokes((prev) => {
           if (prev.some((s) => s.id === parsed.stroke.id)) return prev
           return [...prev, parsed.stroke]
@@ -91,7 +113,7 @@ export function useWhiteboard(enabled: boolean) {
         setStrokes((prev) => mergeStrokes(prev, parsed.strokes))
       }
     },
-    [room],
+    [room, requestSnapshot],
   )
 
   const { send } = useDataChannel(WB_TOPIC, handleMsg)
@@ -104,11 +126,21 @@ export function useWhiteboard(enabled: boolean) {
   )
   sendRef.current = sendRaw
 
+  const announceOpen = useCallback(async () => {
+    const from = room.localParticipant.identity
+    await sendRaw({ type: 'open', from })
+    requestSnapshot()
+  }, [room, sendRaw, requestSnapshot])
+
   useEffect(() => {
-    if (!enabled || snapshotRequestedRef.current) return
-    snapshotRequestedRef.current = true
-    void sendRaw({ type: 'snapshot_request', from: room.localParticipant.identity })
-  }, [enabled, room, sendRaw])
+    if (!enabled) {
+      announcedOpenRef.current = false
+      return
+    }
+    if (announcedOpenRef.current) return
+    announcedOpenRef.current = true
+    void announceOpen()
+  }, [enabled, announceOpen])
 
   const publishStroke = useCallback(
     async (stroke: WbStroke) => {
@@ -116,9 +148,11 @@ export function useWhiteboard(enabled: boolean) {
         if (prev.some((s) => s.id === stroke.id)) return prev
         return [...prev, stroke]
       })
+      // Ensure remotes open the board even if they missed the initial open
+      await sendRaw({ type: 'open', from: room.localParticipant.identity })
       await sendRaw({ type: 'stroke', stroke })
     },
-    [sendRaw],
+    [room, sendRaw],
   )
 
   const undoLastOwn = useCallback(async () => {
@@ -145,5 +179,6 @@ export function useWhiteboard(enabled: boolean) {
     undoLastOwn,
     clearBoard,
     createStrokeId,
+    announceOpen,
   }
 }
