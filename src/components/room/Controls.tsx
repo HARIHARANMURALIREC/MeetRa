@@ -11,6 +11,7 @@ import {
   Mic,
   MicOff,
   MonitorUp,
+  Pencil,
   Smile,
   SwitchCamera,
   Users,
@@ -51,10 +52,12 @@ export function Controls({
   const chatOpen = useMeetingStore((s) => s.chatOpen)
   const participantsOpen = useMeetingStore((s) => s.participantsOpen)
   const pollsOpen = useMeetingStore((s) => s.pollsOpen)
+  const whiteboardOpen = useMeetingStore((s) => s.whiteboardOpen)
   const noiseSuppressionEnabled = useMeetingStore((s) => s.noiseSuppressionEnabled)
   const setChatOpen = useMeetingStore((s) => s.setChatOpen)
   const setParticipantsOpen = useMeetingStore((s) => s.setParticipantsOpen)
   const setPollsOpen = useMeetingStore((s) => s.setPollsOpen)
+  const setWhiteboardOpen = useMeetingStore((s) => s.setWhiteboardOpen)
   const setNoiseSuppressionEnabled = useMeetingStore((s) => s.setNoiseSuppressionEnabled)
   const setVideoDeviceId = useMeetingStore((s) => s.setVideoDeviceId)
   const setCameraFacing = useMeetingStore((s) => s.setCameraFacing)
@@ -186,6 +189,12 @@ export function Controls({
               onClick={() => setPollsOpen(!pollsOpen)}
               label="Polls"
               icon={<BarChart3 className="h-5 w-5" />}
+            />
+            <ControlButtonWrap
+              active={whiteboardOpen}
+              onClick={() => setWhiteboardOpen(!whiteboardOpen)}
+              label="Whiteboard"
+              icon={<Pencil className="h-5 w-5" />}
             />
             {roomCode && (
               <ControlButtonWrap

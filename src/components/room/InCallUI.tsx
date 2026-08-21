@@ -4,6 +4,7 @@ import { Controls } from './Controls'
 import { ChatPanel } from './ChatPanel'
 import { ParticipantsPanel } from './ParticipantsPanel'
 import { PollsPanel } from './PollsPanel'
+import { WhiteboardPanel } from './WhiteboardPanel'
 import { useRoomSignals } from '../../hooks/useRoomSignals'
 import { RoomAudioRenderer, useLocalParticipant, useRoomContext } from '@livekit/components-react'
 import { useMeetingStore } from '../../store/useMeetingStore'
@@ -44,7 +45,8 @@ export function InCallUI({ roomId, roomCode, isHost, onLeave, onEndMeeting }: In
   const chatOpen = useMeetingStore((s) => s.chatOpen)
   const participantsOpen = useMeetingStore((s) => s.participantsOpen)
   const pollsOpen = useMeetingStore((s) => s.pollsOpen)
-  const panelOpen = chatOpen || participantsOpen || pollsOpen
+  const whiteboardOpen = useMeetingStore((s) => s.whiteboardOpen)
+  const panelOpen = chatOpen || participantsOpen || pollsOpen || whiteboardOpen
 
   const isPhone = useIsPhoneChrome()
   const [chromeVisible, setChromeVisible] = useState(true)
@@ -157,6 +159,7 @@ export function InCallUI({ roomId, roomCode, isHost, onLeave, onEndMeeting }: In
       <ChatPanel roomId={roomId} />
       <ParticipantsPanel roomId={roomId} isHost={isHost} raisedHands={raisedHands} />
       <PollsPanel roomId={roomId} isHost={isHost} />
+      <WhiteboardPanel />
     </div>
   )
 }

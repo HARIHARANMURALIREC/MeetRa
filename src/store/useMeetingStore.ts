@@ -17,6 +17,7 @@ interface MeetingState {
   chatOpen: boolean
   participantsOpen: boolean
   pollsOpen: boolean
+  whiteboardOpen: boolean
   hasLeft: boolean
   meetingEnded: boolean
   activeWorkspace: Workspace | null
@@ -35,6 +36,7 @@ interface MeetingState {
   setChatOpen: (open: boolean) => void
   setParticipantsOpen: (open: boolean) => void
   setPollsOpen: (open: boolean) => void
+  setWhiteboardOpen: (open: boolean) => void
   setHasLeft: (left: boolean) => void
   setMeetingEnded: (ended: boolean) => void
   setActiveWorkspace: (workspace: Workspace | null) => void
@@ -57,6 +59,7 @@ const initialState = {
   chatOpen: false,
   participantsOpen: false,
   pollsOpen: false,
+  whiteboardOpen: false,
   hasLeft: false,
   meetingEnded: false,
   activeWorkspace: null as Workspace | null,
@@ -87,9 +90,30 @@ export const useMeetingStore = create<MeetingState>((set) => ({
   setAudioDeviceId: (audioDeviceId) => set({ audioDeviceId }),
   setVideoDeviceId: (videoDeviceId) => set({ videoDeviceId }),
   setCameraFacing: (cameraFacing) => set({ cameraFacing }),
-  setChatOpen: (chatOpen) => set({ chatOpen }),
-  setParticipantsOpen: (participantsOpen) => set({ participantsOpen }),
-  setPollsOpen: (pollsOpen) => set({ pollsOpen }),
+  setChatOpen: (chatOpen) =>
+    set(
+      chatOpen
+        ? { chatOpen, participantsOpen: false, pollsOpen: false, whiteboardOpen: false }
+        : { chatOpen },
+    ),
+  setParticipantsOpen: (participantsOpen) =>
+    set(
+      participantsOpen
+        ? { participantsOpen, chatOpen: false, pollsOpen: false, whiteboardOpen: false }
+        : { participantsOpen },
+    ),
+  setPollsOpen: (pollsOpen) =>
+    set(
+      pollsOpen
+        ? { pollsOpen, chatOpen: false, participantsOpen: false, whiteboardOpen: false }
+        : { pollsOpen },
+    ),
+  setWhiteboardOpen: (whiteboardOpen) =>
+    set(
+      whiteboardOpen
+        ? { whiteboardOpen, chatOpen: false, participantsOpen: false, pollsOpen: false }
+        : { whiteboardOpen },
+    ),
   setHasLeft: (hasLeft) => set({ hasLeft }),
   setMeetingEnded: (meetingEnded) => set({ meetingEnded }),
   setActiveWorkspace: (activeWorkspace) => set({ activeWorkspace }),
